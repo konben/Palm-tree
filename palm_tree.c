@@ -6,58 +6,95 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 
-/* Prints a tree representaion of dir and all its subdirectories. */
-void print_tree(DIR *dir, int depth, FILE *out)
-{}
-
-/* Prints an error message and exits the program. */
-void print_error(const char *msg)
+/* Returns all subdirectories excluding .. and . as a list of names. */
+char **get_subdirs(DIR *dir, int *dir_count)
 {
-    fprintf(stderr, "error: %s!\n", msg);
-    exit(1);
+    int count = 0;
+    char **subs = malloc(0);
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL)
+    {
+   	    // Ignore all files.
+	    if (entry->d_type == DT_DIR &&
+        // Ignore .. and .
+            strcmp(entry->d_name, "..") != 0 &&
+            strcmp(entry->d_name, ".")  != 0)
+        {
+            // Put name into the list.
+            count++;
+            subs = realloc(subs, count*sizeof(char **));
+            subs[count - 1] = malloc(1000);
+            strcpy(subs[count - 1], entry->d_name);
+        }
+    }
+
+    *dir_count = count;
+    return subs;
+}
+
+char *str_append(char *s1, char *s2)
+{
+    char *ret = malloc(1000);
+    strcpy(ret, s1);
+    strcat(ret, s2);
+
+    return ret;
+}
+
+char *path_append(char *p1, char *p2)
+{
+    char *ret = str_append(p1, p2);
+    strcat(ret, "/");
+
+    return ret;
+}
+
+/* Prints a tree representaion of dir and all its subdirectories. */
+void print_tree(char *path, char *indent)
+{
+    DIR *dir = opendir(path);
+    if (!dir)
+        return;
+
+    int sub_c;
+    char **subs = get_subdirs(dir, &sub_c);
+    for (int i = 0; i < sub_c - 1; i++)
+    {
+        printf("%s├───%s\n", indent, subs[i]);
+        // Print descendants.
+        char *next_path = path_append(path, subs[i]);
+        char *next_indent = str_append(indent, "|   ");
+        print_tree(next_path, next_indent);
+        free(next_path); free(next_indent);
+    }
+    if (sub_c > 0)
+    {
+        printf("%s╰───%s\n", indent, subs[sub_c - 1]);
+        char *next_path = path_append(path, subs[sub_c - 1]);
+        char *next_indent = str_append(indent, "    ");
+        print_tree(next_path, next_indent);
+        free(next_path); free(next_indent);
+    }
+
+    free(subs);
+    closedir(dir);
 }
 
 int main(int argc, char **argv)
 {
-    FILE *out_file = stdout;
+    // Print current directory.
+    char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) != NULL)
+       printf("%s\n", cwd);
 
-    // Processing command line arguments.
-    opterr = 0;
-    char c;
-    while ((c = getopt(argc, argv, "f:h")) != -1)
-    {
-        switch (c)
-        {
-        case 'f':
-            out_file = fopen(optarg, "w");
-            if (!out_file)
-            {
-                char *msg; sprintf(msg, "could not open '%s'", optarg);
-                print_error(msg);
-            }
-            break;
-        case 'h':
-        case '?':
-            puts(
-                "Usage: palm_tree [options] <path>\n"
-                "\n"
-                "Prints a tree representation of either the current directory if path is empty or path otherwise.\n"
-                "\n"
-                "Options:\n"
-                "\tf <file-path>\tprint output to file instead of stdout\n"
-                "\th\t\tprint help message\n"
-                );
-        }
-    }
-
-    // Open initial directory.
-    DIR *init_dir = opendir(optind < argc? argv[optind] : "./");
-    if (!init_dir)
-        print_error("could not open initial directory");
-
-    print_tree(init_dir, 0, out_file);
+    // Plot subdirectories.
+    char *indent = malloc(1000);
+    *indent = '\0';
+    print_tree("./", indent);
 
     return 0;
 }
