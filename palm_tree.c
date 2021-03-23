@@ -18,8 +18,8 @@ char **get_subdirs(DIR *dir, int *dir_count)
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL)
     {
-   	    // Ignore all files.
-	    if (entry->d_type == DT_DIR &&
+   	// Ignore all files.
+	if (entry->d_type == DT_DIR &&
         // Ignore .. and .
             strcmp(entry->d_name, "..") != 0 &&
             strcmp(entry->d_name, ".")  != 0)
