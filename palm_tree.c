@@ -18,8 +18,8 @@ char **get_subdirs(DIR *dir, int *dir_count)
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL)
     {
-   	// Ignore all files.
-	if (entry->d_type == DT_DIR &&
+       	// Ignore all files.
+	    if (entry->d_type == DT_DIR &&
         // Ignore .. and .
             strcmp(entry->d_name, "..") != 0 &&
             strcmp(entry->d_name, ".")  != 0)
@@ -27,7 +27,7 @@ char **get_subdirs(DIR *dir, int *dir_count)
             // Put name into the list.
             count++;
             subs = realloc(subs, count*sizeof(char **));
-            subs[count - 1] = malloc(1000);
+            subs[count - 1] = malloc(strlen(entry->d_name) + 1);
             strcpy(subs[count - 1], entry->d_name);
         }
     }
@@ -38,7 +38,7 @@ char **get_subdirs(DIR *dir, int *dir_count)
 
 char *str_append(char *s1, char *s2)
 {
-    char *ret = malloc(1000);
+    char *ret = malloc(strlen(s1) + strlen(s2) + 1);
     strcpy(ret, s1);
     strcat(ret, s2);
 
@@ -47,7 +47,9 @@ char *str_append(char *s1, char *s2)
 
 char *path_append(char *p1, char *p2)
 {
-    char *ret = str_append(p1, p2);
+    char *ret = malloc(strlen(p1) + strlen(p2) + 2);
+    strcpy(ret, p1);
+    strcat(ret, p2);
     strcat(ret, "/");
 
     return ret;
